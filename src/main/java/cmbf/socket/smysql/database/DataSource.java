@@ -14,7 +14,7 @@ public class DataSource {
     private QueryBuilder mBuilder;
     private Connection mConnection;
 
-    public DataSource() {
+    private DataSource() {
         mBuilder = new MysqlQueryBuilder();
     }
 
@@ -42,18 +42,50 @@ public class DataSource {
         return init(host, database, user, "");
     }
 
-    public static boolean dispose() {
+    public static boolean startConnection() {
 
-        if (instance.mConnection != null) {
-            try {
-                instance.mConnection.close();
-            } catch (SQLException e) {
-                System.out.println(e.getMessage());
-                System.out.println(Arrays.toString(e.getStackTrace()));
-                return false;
-            }
+        if (instance.mPersistent) {
+            return true;
+        }
+
+        try {
+            instance.mConnection = DriverManager.getConnection("jdbc:mysql://" + instance.mConfiguration.getHost() + "/" + instance.mConfiguration.getDatabase(), instance.mConfiguration.getUser(), instance.mConfiguration.getPassword());
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
         return true;
+    }
+
+    public static boolean stop() {
+        try {
+            if (instance.mConnection != null && !instance.mConnection.isClosed()) {
+                instance.mConnection.close();
+            }
+        } catch(SQLException e){
+            System.out.println(e.getMessage());
+            System.out.println(Arrays.toString(e.getStackTrace()));
+            return false;
+        }
+        return true;
+    }
+
+    public static boolean disposeConnection() {
+
+        if (instance.mPersistent) {
+            return true;
+        }
+
+        return stop();
+    }
+
+    public static Connection init() {
+
+        try {
+            instance.mConnection = DriverManager.getConnection("jdbc:mysql://" + instance.mConfiguration.getHost() + "/" + instance.mConfiguration.getDatabase(), instance.mConfiguration.getUser(), instance.mConfiguration.getPassword());
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return instance.mConnection;
     }
 
     public static Connection getConnection() {
